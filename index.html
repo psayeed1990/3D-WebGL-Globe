@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Earth Globe</title>
+		<script src='three.min.js'></script>
+		<script src='threex.planets.js'></script>
+		<script src='threex.atmospherematerial.js'></script>
+		<script src='dat.gui.min.js'></script>
+		<script src="threex.atmospheredatgui.js"></script>
+		<style>
+			 body{
+				 margin: 0px; 
+				 background-color: #000; 
+				 cursor: none;
+				 overflow: hidden;}
+		</style>
+	</head>
+
+	<body>
+		<script>
+			var renderer	= new THREE.WebGLRenderer({
+				antialias	: true
+			});
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+			renderer.shadowMapEnabled	= true
+			
+			var onRenderFcts= [];
+			var scene	= new THREE.Scene();
+			var camera	= new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100 );
+			camera.position.z = 1;
+
+			var light	= new THREE.AmbientLight( 0x223322 )
+			scene.add( light )
+
+			var light	= new THREE.DirectionalLight( 0xffffff, 1 )
+			light.position.set(5,5,5)
+			scene.add( light )
+
+			
+			light.castShadow	= true
+			light.shadowCameraNear	= 0.01
+			light.shadowCameraFar	= 15
+			light.shadowCameraFov	= 45
+
+			light.shadowCameraLeft	= -1
+			light.shadowCameraRight	=  1
+			light.shadowCameraTop	=  1
+			light.shadowCameraBottom= -1
+
+			light.shadowBias	= 0.001
+			light.shadowDarkness	= 0.2
+
+			light.shadowMapWidth	= 1024
+			light.shadowMapHeight	= 1024						
+
+			var starSphere	= THREEx.Planets.createStarfield()
+			scene.add(starSphere)
+
+			var containerEarth	= new THREE.Object3D()
+			containerEarth.rotateZ(-23.4 * Math.PI/180)
+			containerEarth.position.z	= 0
+			scene.add(containerEarth)
+
+			var earthMesh	= THREEx.Planets.createEarth()
+			earthMesh.receiveShadow	= true
+			earthMesh.castShadow	= true
+			containerEarth.add(earthMesh)
+			onRenderFcts.push(function(delta, now){
+				earthMesh.rotation.y += .90 * delta;
+			})
+
+			var geometry	= new THREE.SphereGeometry(0.5, 32, 32)
+			var material	= THREEx.createAtmosphereMaterial()
+			material.uniforms.glowColor.value.set(0x0E4E71)
+			material.uniforms.coeficient.value	= 0.8
+			material.uniforms.power.value		= 2.0
+			var mesh	= new THREE.Mesh(geometry, material );
+			mesh.scale.multiplyScalar(1.01);
+			containerEarth.add( mesh );
+
+			var geometry	= new THREE.SphereGeometry(0.5, 32, 32)
+			var material	= THREEx.createAtmosphereMaterial()
+			material.side	= THREE.BackSide
+			material.uniforms.glowColor.value.set(0x0E4E71)
+			material.uniforms.coeficient.value	= 0.5
+			material.uniforms.power.value		= 8.0
+			var mesh	= new THREE.Mesh(geometry, material );
+			mesh.scale.multiplyScalar(1.15);
+			containerEarth.add( mesh );
+
+			var earthCloud	= THREEx.Planets.createEarthCloud()
+			earthCloud.receiveShadow	= true
+			earthCloud.castShadow	= true
+			containerEarth.add(earthCloud)
+			onRenderFcts.push(function(delta, now){
+				earthCloud.rotation.y += 1.5 * delta;		
+			})
+
+			var mouse	= {x : 0, y : 0}
+			document.addEventListener('mousemove', function(event){
+				mouse.x	= (event.clientX / window.innerWidth ) - 0.5
+				mouse.y	= (event.clientY / window.innerHeight) - 0.5
+			}, false)
+			onRenderFcts.push(function(delta, now){
+				camera.position.x += (mouse.x*5 - camera.position.x) * (delta*3)
+				camera.position.y += (mouse.y*5 - camera.position.y) * (delta*3)
+				camera.lookAt( scene.position )
+			})
+
+
+			onRenderFcts.push(function(){
+				renderer.render( scene, camera );		
+			})
+
+
+			var lastTimeMsec= null
+			requestAnimationFrame(function animate(nowMsec){
+				requestAnimationFrame( animate );
+				lastTimeMsec	= lastTimeMsec || nowMsec-1000/60
+				var deltaMsec	= Math.min(200, nowMsec - lastTimeMsec)
+				lastTimeMsec	= nowMsec
+				onRenderFcts.forEach(function(onRenderFct){
+					onRenderFct(deltaMsec/1000, nowMsec/1000)
+				})
+			})
+		</script>
+	</body>
+
+</html>
